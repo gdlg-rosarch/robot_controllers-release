@@ -1,0 +1,21 @@
+ros-indigo-robot-controllers (0.1.3-0trusty) trusty; urgency=high
+
+  * add scaled mimic controller (for bellows)
+  * Contributors: Michael Ferguson
+
+ -- Michael Ferguson <mferguson@fetchrobotics.com>  Wed, 28 Jan 2015 08:00:00 -0000
+
+ros-indigo-robot-controllers (0.1.2-0trusty) trusty; urgency=high
+
+
+
+ -- Michael Ferguson <mferguson@fetchrobotics.com>  Tue, 06 Jan 2015 08:00:00 -0000
+
+ros-indigo-robot-controllers (0.1.1-0trusty) trusty; urgency=high
+
+  * initial release
+  * Contributors: Michael Ferguson
+
+ -- Michael Ferguson <mferguson@fetchrobotics.com>  Mon, 05 Jan 2015 08:00:00 -0000
+
+
