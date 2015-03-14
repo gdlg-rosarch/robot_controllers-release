@@ -102,6 +102,12 @@ public:
    */
   virtual void update(const ros::Time& now, const ros::Duration& dt);
 
+  /** @brief Get the type of this controller. */
+  virtual std::string getType()
+  {
+    return "robot_controllers/FollowJointTrajectoryController";
+  }
+
   /** @brief Get the names of joints/controllers which this controller commands. */
   virtual std::vector<std::string> getCommandedNames();
 
@@ -127,6 +133,9 @@ private:
 
   bool stop_with_action_;  /// should we stop this controller when the
                            /// action has terminated (or hold position)?
+
+  bool stop_on_path_violation_;  /// should we stop this controller when
+                                 /// a path tolerance has been violated?
 
   /*
    * In certain cases, we want to start a trajectory at our last sample,
