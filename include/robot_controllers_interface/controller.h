@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Fetch Robotics Inc.
+ * Copyright (c) 2014-2015, Fetch Robotics Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -74,6 +74,9 @@ public:
   virtual int init(ros::NodeHandle& nh, ControllerManager* manager)
   {
     name_ = nh.getNamespace();
+    // remove leading slash
+    if (name_.at(0) == '/')
+      name_.erase(0, 1);
     return 0;
   }
 
@@ -104,6 +107,12 @@ public:
   std::string getName()
   {
     return name_;
+  }
+
+  /** @brief Get the type of this controller. */
+  virtual std::string getType()
+  {
+    return "UnknownType";
   }
 
   /** @brief Get the names of joints/controllers which this controller commands. */
