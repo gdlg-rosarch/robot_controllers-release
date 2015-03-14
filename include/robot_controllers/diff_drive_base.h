@@ -1,7 +1,7 @@
 /*********************************************************************
  *  Software License Agreement (BSD License)
  *
- *  Copyright (c) 2014, Fetch Robotics Inc.
+ *  Copyright (c) 2014-2015, Fetch Robotics Inc.
  *  Copyright (c) 2013, Unbounded Robotics Inc.
  *  All rights reserved.
  *
@@ -96,6 +96,12 @@ public:
    */
   virtual void update(const ros::Time& now, const ros::Duration& dt);
 
+  /** @brief Get the type of this controller. */
+  virtual std::string getType()
+  {
+    return "robot_controllers/DiffDriveBaseController";
+  }
+
   /** @brief Get the names of joints/controllers which this controller commands. */
   virtual std::vector<std::string> getCommandedNames();
 
@@ -124,7 +130,9 @@ private:
   double radians_per_meter_;
   double theta_;
 
-  double moving_threshold_;
+  double wheel_rotating_threshold_;  /// Threshold for wheel velocity to be "moving"
+  double rotating_threshold_;  /// Threshold for dr to be considered "moving"
+  double moving_threshold_;    /// Threshold for dx to be considered "moving"
 
   double max_velocity_x_;
   double max_velocity_r_;
@@ -154,9 +162,6 @@ private:
 
   boost::shared_ptr<tf::TransformBroadcaster> broadcaster_;
   bool publish_tf_;
-
-  std::string odometry_frame_;
-  std::string base_frame_;
 
   bool enabled_;
   bool ready_;
