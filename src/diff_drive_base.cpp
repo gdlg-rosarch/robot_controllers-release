@@ -1,7 +1,7 @@
 /*********************************************************************
  *  Software License Agreement (BSD License)
  *
- *  Copyright (c) 2014, Fetch Robotics Inc.
+ *  Copyright (c) 2014-2015, Fetch Robotics Inc.
  *  Copyright (c) 2013, Unbounded Robotics Inc.
  *  All rights reserved.
  *
@@ -50,7 +50,6 @@ DiffDriveBaseController::DiffDriveBaseController() :
 
   odom_.pose.pose.orientation.z = 0.0;
   odom_.pose.pose.orientation.w = 1.0;
-  odom_.header.frame_id = "odom";
 
   last_sent_x_ = desired_x_ = 0.0;
   last_sent_r_ = desired_r_ = 0.0;
@@ -89,15 +88,26 @@ int DiffDriveBaseController::init(ros::NodeHandle& nh, ControllerManager* manage
   last_update_ = ros::Time::now();
 
   // Get base parameters
-  nh.param<double>("track_width", track_width_, 0.33665);
-  nh.param<double>("radians_per_meter", radians_per_meter_, 17.4978147374);
+  nh.param<double>("track_width", track_width_, 0.37476);
+  nh.param<double>("radians_per_meter", radians_per_meter_, 16.5289);
+
+  // If using an external correction (such as robot_pose_ekf or graft)
+  // we should not publish the TF frame from base->odom
   nh.param<bool>("publish_tf", publish_tf_, true);
-  nh.param<std::string>("odometry_frame", odometry_frame_, "odom");
-  nh.param<std::string>("base_frame", base_frame_, "base_link");
-  nh.param<double>("moving_threshold", moving_threshold_, 0.0001);
+
+  // The pose in the odometry message is specified in terms of the odometry frame
+  nh.param<std::string>("odometry_frame", odom_.header.frame_id, "odom");
+
+  // The twist in the odometry message is specified in the coordinate frame of the base
+  nh.param<std::string>("base_frame", odom_.child_frame_id, "base_link");
+
+  // Get various thresholds below which we supress noise
+  nh.param<double>("wheel_rotating_threshold", wheel_rotating_threshold_, 0.001);
+  nh.param<double>("rotating_threshold", rotating_threshold_, 0.05);
+  nh.param<double>("moving_threshold", moving_threshold_, 0.05);
 
   double t;
-  nh.param<double>("/timeout", t, 0.25);
+  nh.param<double>("timeout", t, 0.25);
   timeout_ = ros::Duration(t);
 
   // Get limits of base controller
@@ -117,6 +127,13 @@ int DiffDriveBaseController::init(ros::NodeHandle& nh, ControllerManager* manage
     broadcaster_.reset(new tf::TransformBroadcaster());
 
   initialized_ = true;
+
+  // Should we autostart?
+  bool autostart;
+  nh.param("autostart", autostart, false);
+  if (autostart)
+    manager->requestStart(getName());
+
   return 0;
 }
 
@@ -139,12 +156,6 @@ bool DiffDriveBaseController::start()
   if (!initialized_)
   {
     ROS_ERROR_NAMED("BaseController", "Unable to start, not initialized.");
-    return false;
-  }
-
-  if (ros::Time::now() - last_command_ >= timeout_)
-  {
-    ROS_ERROR_NAMED("BaseController", "Unable to start, command has timed out.");
     return false;
   }
 
@@ -173,14 +184,14 @@ void DiffDriveBaseController::update(const ros::Time& now, const ros::Duration& 
   if (!initialized_)
     return;  // should never really hit this
 
-  /* See if we have timed out and need to stop */
+  // See if we have timed out and need to stop
   if (now - last_command_ >= timeout_)
   {
     ROS_DEBUG_THROTTLE_NAMED(5, "BaseController", "Command timed out.");
     desired_x_ = desired_r_ = 0.0;
   }
 
-  /* Do velocity acceleration/limiting */
+  // Do velocity acceleration/limiting
   if (desired_x_ > last_sent_x_)
   {
     last_sent_x_ += max_acceleration_x_ * (now - last_update_).toSec();
@@ -209,35 +220,55 @@ void DiffDriveBaseController::update(const ros::Time& now, const ros::Duration& 
   double dx = 0.0;
   double dr = 0.0;
 
-  double left_dx = static_cast<double>((left_->getPosition() - left_last_position_)/radians_per_meter_);
-  double right_dx = static_cast<double>((right_->getPosition() - right_last_position_)/radians_per_meter_);
-  double left_vel = static_cast<double>(left_->getVelocity()/radians_per_meter_);
-  double right_vel = static_cast<double>(right_->getVelocity()/radians_per_meter_);
-  left_last_position_ = left_->getPosition();
-  right_last_position_ = right_->getPosition();
+  double left_pos = left_->getPosition();
+  double right_pos = right_->getPosition();
+  double left_dx = (left_pos - left_last_position_)/radians_per_meter_;
+  double right_dx = (right_pos - right_last_position_)/radians_per_meter_;
+  double left_vel = static_cast<double>(left_->getVelocity())/radians_per_meter_;
+  double right_vel = static_cast<double>(right_->getVelocity())/radians_per_meter_;
 
-  /* Calculate forward and angular differences */
+  // Threshold the odometry to avoid noise (especially in simulation)
+  if (fabs(left_dx) > wheel_rotating_threshold_ ||
+      fabs(right_dx) > wheel_rotating_threshold_ ||
+      last_sent_x_ != 0.0 ||
+      last_sent_r_ != 0.0)
+  {
+    // Above threshold, update last position
+    left_last_position_ = left_pos;
+    right_last_position_ = right_pos;
+  }
+  else
+  {
+    // Below threshold, zero delta/velocities
+    left_dx = right_dx = 0.0;
+    left_vel = right_vel = 0.0;
+  }
+
+  // Calculate forward and angular differences
   double d = (left_dx+right_dx)/2.0;
   double th = (right_dx-left_dx)/track_width_;
 
-  /* Calculate forward and angular velocities */
+  // Calculate forward and angular velocities
   dx = (left_vel + right_vel)/2.0;
   dr = (right_vel - left_vel)/track_width_;
 
-  /* Update store odometry */
+  // Update store odometry
+  theta_ += th/2.0;
   odom_.pose.pose.position.x += d*cos(theta_);
   odom_.pose.pose.position.y += d*sin(theta_);
-  theta_ += th;
+  theta_ += th/2.0;
 
-  /* Actually set command */
-  if ((last_sent_x_ != 0.0) || (last_sent_r_ != 0.0) ||
-      (fabs(dx) > 0.05) || (fabs(dr) > 0.05))
+  // Actually set command
+  if (fabs(dx) > moving_threshold_ ||
+      fabs(dr) > rotating_threshold_ ||
+      last_sent_x_ != 0.0 ||
+      last_sent_r_ != 0.0)
   {
     setCommand(last_sent_x_ - (last_sent_r_/2.0 * track_width_),
-              last_sent_x_ + (last_sent_r_/2.0 * track_width_));
+               last_sent_x_ + (last_sent_r_/2.0 * track_width_));
   }
 
-  /* Update odometry information. */
+  // Update odometry information
   odom_.pose.pose.orientation.z = sin(theta_/2.0);
   odom_.pose.pose.orientation.w = cos(theta_/2.0);
   odom_.twist.twist.linear.x = dx;
@@ -280,7 +311,7 @@ bool DiffDriveBaseController::publish(ros::Time time)
      * REP105 (http://ros.org/reps/rep-0105.html)
      *   says: map -> odom -> base_link
      */
-    broadcaster_->sendTransform(tf::StampedTransform(transform, time, odometry_frame_, base_frame_));
+    broadcaster_->sendTransform(tf::StampedTransform(transform, time, odom_.header.frame_id, odom_.child_frame_id));
   }
 
   return true;
