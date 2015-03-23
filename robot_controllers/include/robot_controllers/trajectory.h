@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2014, Fetch Robotics Inc.
+ *  Copyright (c) 2014-2015, Fetch Robotics Inc.
  *  Copyright (c) 2013, Unbounded Robotics Inc.
  *  All rights reserved.
  *
@@ -38,6 +38,8 @@
 #ifndef ROBOT_CONTROLLERS_TRAJECTORY_H_
 #define ROBOT_CONTROLLERS_TRAJECTORY_H_
 
+#include <ros/ros.h>
+#include <angles/angles.h>
 #include <trajectory_msgs/JointTrajectory.h>
 
 namespace robot_controllers
@@ -132,12 +134,25 @@ inline bool spliceTrajectories(const Trajectory& t1,
                                const double time,
                                Trajectory * t)
 {
-  // Need at least one point in t2 for the following code to work */
+  // Need at least one point in t1 for the following code to work
+  if (t1.size() == 0)
+  {
+    return false;
+  }
+
+  // Need at least one point in t2 for the following code to work
   if (t2.size() == 0)
   {
     *t = t1;
     return true;
   }
+
+  // Check sizes
+  size_t num_joints = t1.points[0].q.size();
+  bool has_velocities = (t1.points[0].qd.size() == num_joints) &&
+                        (t2.points[0].qd.size() == num_joints);
+  bool has_accelerations = (t1.points[0].qdd.size() == num_joints) &&
+                           (t2.points[0].qdd.size() == num_joints);
 
   // Just to be sure
   t->points.clear();
@@ -179,6 +194,24 @@ inline bool spliceTrajectories(const Trajectory& t1,
     }
   }
 
+  if (!has_accelerations)
+  {
+    // Remove any accelerations in output trajectory
+    for (size_t i = 0; i < t->points.size(); i++)
+    {
+      t->points[i].qdd.clear();
+    }
+  }
+
+  if (!has_velocities)
+  {
+    // Remove any velocities in output trajectory
+    for (size_t i = 0; i < t->points.size(); i++)
+    {
+      t->points[i].qd.clear();
+    }
+  }
+
   return true;
 }
 
@@ -210,6 +243,62 @@ inline void rosPrintTrajectory(Trajectory& t)
       }
     }
   }
+}
+
+/**
+ * @brief Windup the trajectory so that continuous joints do not wrap
+ * @param continuous Which joints in each TrajectoryPoint are continuous.
+ * @param trajectory The trajectory to unwind.
+ */
+inline bool windupTrajectory(std::vector<bool> continuous,
+                             Trajectory& trajectory)
+{
+  for (size_t p = 0; p < trajectory.size(); p++)
+  {
+    if (continuous.size() != trajectory.points[p].q.size())
+    {
+      // Size does not match
+      return false;
+    }
+
+    for (size_t j = 0; j < continuous.size(); j++)
+    {
+      if (continuous[j])
+      {
+        if (p > 0)
+        {
+          // Unwind by taking shortest path from previous point
+          double shortest = angles::shortest_angular_distance(trajectory.points[p-1].q[j], trajectory.points[p].q[j]);
+          trajectory.points[p].q[j]  =  trajectory.points[p-1].q[j] + shortest;
+        }
+        else
+        {
+          // Start between -PI and PI
+          trajectory.points[p].q[j] = angles::normalize_angle(trajectory.points[p].q[j]);
+        }
+      }
+    }
+  }
+  return true;
+}
+
+inline bool unwindTrajectoryPoint(std::vector<bool> continuous,
+                                  TrajectoryPoint& p)
+{
+  if (continuous.size() != p.q.size())
+  {
+    return false;
+  }
+
+  for (size_t j = 0; j < continuous.size(); j++)
+  {
+    if (continuous[j])
+    {
+      p.q[j] = angles::normalize_angle(p.q[j]);
+    }
+  }
+
+  return true;
 }
 
 /**
