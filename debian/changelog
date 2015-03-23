@@ -1,0 +1,38 @@
+ros-indigo-robot-controllers-interface (0.3.0-0trusty) trusty; urgency=high
+
+  * improve windup support
+  * fix potential build issue
+  * Contributors: Michael Ferguson
+
+ -- Michael Ferguson <mferguson@fetchrobotics.com>  Mon, 23 Mar 2015 07:00:00 -0000
+
+ros-indigo-robot-controllers-interface (0.1.4-0trusty) trusty; urgency=high
+
+  * add action server for get/set of controller state
+  * make autostart actually work
+  * Contributors: Michael Ferguson
+
+ -- Michael Ferguson <mferguson@fetchrobotics.com>  Fri, 13 Mar 2015 07:00:00 -0000
+
+ros-indigo-robot-controllers-interface (0.1.3-0trusty) trusty; urgency=high
+
+  * additional logging when requestStart() fails
+  * Contributors: Michael Ferguson
+
+ -- Michael Ferguson <mferguson@fetchrobotics.com>  Wed, 28 Jan 2015 08:00:00 -0000
+
+ros-indigo-robot-controllers-interface (0.1.2-0trusty) trusty; urgency=high
+
+  * install robot_controllers_interface
+  * Contributors: Michael Ferguson
+
+ -- Michael Ferguson <mferguson@fetchrobotics.com>  Tue, 06 Jan 2015 08:00:00 -0000
+
+ros-indigo-robot-controllers-interface (0.1.1-0trusty) trusty; urgency=high
+
+  * initial release
+  * Contributors: Michael Ferguson
+
+ -- Michael Ferguson <mferguson@fetchrobotics.com>  Mon, 05 Jan 2015 08:00:00 -0000
+
+
