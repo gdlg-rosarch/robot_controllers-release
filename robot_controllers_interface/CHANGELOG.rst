@@ -2,6 +2,11 @@
 Changelog for package robot_controllers_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.3.2 (2015-04-09)
+------------------
+* install scripts
+* Contributors: Michael Ferguson
+
 0.3.1 (2015-03-28)
 ------------------
 
