@@ -2,6 +2,9 @@
 Changelog for package robot_controllers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.3.2 (2015-04-09)
+------------------
+
 0.3.1 (2015-03-28)
 ------------------
 * use shortest_angular_distance for diff drive dx calculations
