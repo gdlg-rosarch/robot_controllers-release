@@ -92,6 +92,14 @@ public:
   virtual bool stop(bool force);
 
   /**
+   * @brief Cleanly reset the controller to it's initial state. Some controllers
+   *        may choose to stop themselves. This is mainly used in the case of the
+   *        the robot exiting some fault condition.
+   * @returns True if successfully reset, false otherwise.
+   */
+  virtual bool reset();
+
+  /**
    * @brief This is the update loop for the controller.
    * @param time The system time.
    * @param dt The timestep since last call to update.
@@ -112,13 +120,6 @@ public:
 
   /** @brief Command callback from either a ROS topic, or a higher controller. */
   void command(const geometry_msgs::TwistConstPtr& msg);
-
-  /** @brief Publish odom, possibly tf */
-  bool publish(ros::Time time)
-  {
-    ROS_WARN_THROTTLE(300, "Base controller is now timer based, this API will be removed in next release");
-    return false;
-  }
 
 private:
   bool initialized_;
@@ -150,6 +151,7 @@ private:
   double safety_scaling_;
   double safety_scaling_distance_;
   double robot_width_;
+  ros::Time last_laser_scan_;
 
   // These are the inputs from the ROS topic
   boost::mutex command_mutex_;
