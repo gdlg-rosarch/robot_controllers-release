@@ -200,6 +200,13 @@ bool DiffDriveBaseController::stop(bool force)
   return false;
 }
 
+bool DiffDriveBaseController::reset()
+{
+  // Reset command
+  last_command_ = ros::Time(0);
+  return true;
+}
+
 void DiffDriveBaseController::update(const ros::Time& now, const ros::Duration& dt)
 {
   if (!initialized_)
@@ -213,12 +220,26 @@ void DiffDriveBaseController::update(const ros::Time& now, const ros::Duration& 
     desired_x_ = desired_r_ = 0.0;
   }
 
+  // Make sure laser has not timed out
+  if ((safety_scaling_distance_ > 0.0) &&
+      (ros::Time::now() - last_laser_scan_ > ros::Duration(0.5)))
+  {
+    safety_scaling_ = 0.1;
+  }
+
   // Do velocity acceleration/limiting
   double x, r;
   {
     boost::mutex::scoped_lock lock(command_mutex_);
+    // Limit linear velocity based on obstacles
     x = std::max(-max_velocity_x_ * safety_scaling_, std::min(desired_x_, max_velocity_x_ * safety_scaling_));
-    r = std::max(-max_velocity_r_, std::min(desired_r_, max_velocity_r_));
+    // Compute how much we actually scaled the linear velocity
+    double actual_scaling = 1.0;
+    if (desired_x_ != 0.0)
+      actual_scaling = x/desired_x_;
+    // Limit angular velocity
+    // Scale same amount as linear velocity so that robot still follows the same "curvature"
+    r = std::max(-max_velocity_r_, std::min(actual_scaling * desired_r_, max_velocity_r_));
   }
   if (x > last_sent_x_)
   {
@@ -377,6 +398,7 @@ void DiffDriveBaseController::scanCallback(
 
   boost::mutex::scoped_lock lock(command_mutex_);
   safety_scaling_ = std::max(0.1, min_dist / safety_scaling_distance_);
+  last_laser_scan_ = ros::Time::now();
 }
 
 void DiffDriveBaseController::setCommand(float left, float right)
