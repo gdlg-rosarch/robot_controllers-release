@@ -174,6 +174,12 @@ bool FollowJointTrajectoryController::stop(bool force)
   return true;
 }
 
+bool FollowJointTrajectoryController::reset()
+{
+  stop(true);  // force stop ourselves
+  return (manager_->requestStop(getName()) == 0);
+}
+
 void FollowJointTrajectoryController::update(const ros::Time& now, const ros::Duration& dt)
 {
   if (!initialized_)
@@ -217,7 +223,7 @@ void FollowJointTrajectoryController::update(const ros::Time& now, const ros::Du
       }
 
       // Fill in actual
-      for (int j = 0; j < joints_.size(); ++j)
+      for (size_t j = 0; j < joints_.size(); ++j)
       {
         feedback_.actual.positions[j] = joints_[j]->getPosition();
         feedback_.actual.velocities[j] = joints_[j]->getVelocity();
@@ -225,7 +231,7 @@ void FollowJointTrajectoryController::update(const ros::Time& now, const ros::Du
       }
 
       // Fill in error
-      for (int j = 0; j < joints_.size(); ++j)
+      for (size_t j = 0; j < joints_.size(); ++j)
       {
         feedback_.error.positions[j] = shortest_angular_distance(feedback_.desired.positions[j],
                                                                  feedback_.actual.positions[j]);
