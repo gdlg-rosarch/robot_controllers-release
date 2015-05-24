@@ -2,6 +2,22 @@
 Changelog for package robot_controllers_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.0 (2015-05-23)
+------------------
+
+0.3.4 (2015-05-22)
+------------------
+* add ability to reset controllers
+* Contributors: Michael Ferguson
+
+0.3.3 (2015-05-03)
+------------------
+
+0.3.2 (2015-04-09)
+------------------
+* install scripts
+* Contributors: Michael Ferguson
+
 0.3.1 (2015-03-28)
 ------------------
 
