@@ -40,6 +40,7 @@
 
 #include <string>
 #include <boost/shared_ptr.hpp>
+#include <boost/thread/mutex.hpp>
 
 #include <ros/ros.h>
 #include <robot_controllers_interface/controller.h>
@@ -49,6 +50,7 @@
 
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
+#include <sensor_msgs/LaserScan.h>
 
 namespace robot_controllers
 {
@@ -90,6 +92,14 @@ public:
   virtual bool stop(bool force);
 
   /**
+   * @brief Cleanly reset the controller to it's initial state. Some controllers
+   *        may choose to stop themselves. This is mainly used in the case of the
+   *        the robot exiting some fault condition.
+   * @returns True if successfully reset, false otherwise.
+   */
+  virtual bool reset();
+
+  /**
    * @brief This is the update loop for the controller.
    * @param time The system time.
    * @param dt The timestep since last call to update.
@@ -111,14 +121,12 @@ public:
   /** @brief Command callback from either a ROS topic, or a higher controller. */
   void command(const geometry_msgs::TwistConstPtr& msg);
 
-  /** @brief Publish odom, possibly tf */
-  bool publish(ros::Time time);
-
 private:
   bool initialized_;
   ControllerManager* manager_;
 
-  void updateCallback(const ros::WallTimerEvent& event);
+  void publishCallback(const ros::TimerEvent& event);
+  void scanCallback(const sensor_msgs::LaserScanConstPtr& scan);
 
   // Set base wheel speeds in m/s
   void setCommand(float left, float right);
@@ -139,9 +147,16 @@ private:
   double max_acceleration_x_;
   double max_acceleration_r_;
 
+  // Laser can provide additional safety limits on velocity
+  double safety_scaling_;
+  double safety_scaling_distance_;
+  double robot_width_;
+  ros::Time last_laser_scan_;
+
   // These are the inputs from the ROS topic
-  float desired_x_;
-  float desired_r_;
+  boost::mutex command_mutex_;
+  double desired_x_;
+  double desired_r_;
 
   // These are from controller update
   float last_sent_x_;
@@ -156,9 +171,11 @@ private:
   ros::Time last_update_;
   ros::Duration timeout_;
 
+  boost::mutex odom_mutex_;
   nav_msgs::Odometry odom_;
   ros::Publisher odom_pub_;
-  ros::Subscriber cmd_sub_;
+  ros::Timer odom_timer_;
+  ros::Subscriber cmd_sub_, scan_sub_;
 
   boost::shared_ptr<tf::TransformBroadcaster> broadcaster_;
   bool publish_tf_;
