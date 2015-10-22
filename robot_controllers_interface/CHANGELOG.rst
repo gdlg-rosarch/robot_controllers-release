@@ -2,6 +2,11 @@
 Changelog for package robot_controllers_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.2 (2015-10-22)
+------------------
+* add -Wall to interface package
+* Contributors: Michael Ferguson
+
 0.4.1 (2015-06-12)
 ------------------
 
