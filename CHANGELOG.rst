@@ -2,6 +2,11 @@
 Changelog for package robot_controllers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.2 (2015-10-22)
+------------------
+* fixed segmentation faults due to misconfiguration
+* Contributors: Arvin Asokan
+
 0.4.1 (2015-06-12)
 ------------------
 * add centering pid to gripper controller
