@@ -1,3 +1,29 @@
+## robot_controllers (indigo) - 0.5.1-0
+
+The packages in the `robot_controllers` repository were released into the `indigo` distro by running `/usr/bin/bloom-release -r indigo -t indigo robot_controllers` on `Tue, 19 Jul 2016 01:50:28 -0000`
+
+These packages were released:
+- `robot_controllers`
+- `robot_controllers_interface`
+- `robot_controllers_msgs`
+
+Version of package(s) in repository `robot_controllers`:
+
+- upstream repository: https://github.com/fetchrobotics/robot_controllers.git
+- release repository: https://github.com/fetchrobotics-gbp/robot_controllers-release.git
+- rosdistro version: `0.5.0-0`
+- old version: `0.5.0-0`
+- new version: `0.5.1-0`
+
+Versions of tools used:
+
+- bloom version: `0.5.21`
+- catkin_pkg version: `0.2.7`
+- rosdep version: `0.11.2`
+- rosdistro version: `0.4.4`
+- vcstools version: `0.1.36`
+
+
 ## robot_controllers (indigo) - 0.5.0-0
 
 The packages in the `robot_controllers` repository were released into the `indigo` distro by running `/usr/bin/bloom-release -r indigo -t indigo robot_controllers` on `Sun, 21 Feb 2016 22:26:26 -0000`
