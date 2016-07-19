@@ -2,6 +2,9 @@
 Changelog for package robot_controllers_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.5.2 (2016-07-18)
+------------------
+
 0.5.1 (2016-07-18)
 ------------------
 * Dynamically load controllers (`#23 <https://github.com/fetchrobotics/robot_controllers/issues/23>`_)
