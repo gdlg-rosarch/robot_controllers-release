@@ -254,7 +254,7 @@ void ControllerManager::execute(const robot_controllers_msgs::QueryControllerSta
     robot_controllers_msgs::ControllerState state = goal->updates[i];
 
     // Make sure controller exists
-    bool exists = false;
+    bool in_controller_list = false;
     for (ControllerList::iterator c = controllers_.begin(); c != controllers_.end(); c++)
     {
       if ((*c)->getController()->getName() == state.name)
@@ -263,27 +263,46 @@ void ControllerManager::execute(const robot_controllers_msgs::QueryControllerSta
         {
           if (state.type == (*c)->getController()->getType())
           {
-            exists = true;
+            in_controller_list = true;
             break;
           }
           else
           {
             std::stringstream ss;
             ss << "Controller " << state.name << " is of type " << (*c)->getController()->getType() << " not " << state.type;
+            getState(result);
             server_->setAborted(result, ss.str());
             return;
           }
         }
-        exists = true;
+        in_controller_list = true;
         break;
       }
     }
-    if (!exists)
+    if (!in_controller_list)
     {
-      std::stringstream ss;
-      ss << "No such controller to update: " << state.name;
-      server_->setAborted(result, ss.str());
-      return;
+      // Check if controller exists on parameter server
+      ros::NodeHandle nh;
+      if (nh.hasParam(state.name))
+      { 
+        // Create controller (in a loader)
+        if (!load(static_cast<std::string>(state.name)))
+        {
+          std::stringstream ss;
+          ss << "Failed to load controller: " << state.name;
+          getState(result);
+          server_->setAborted(result, ss.str());
+          return;
+        }
+      }
+      else
+      {
+        std::stringstream ss;
+        ss << "No such controller to update: " << state.name;
+        getState(result);
+        server_->setAborted(result, ss.str());
+        return;
+      }
     }
 
     // Update state
@@ -293,6 +312,7 @@ void ControllerManager::execute(const robot_controllers_msgs::QueryControllerSta
       {
         std::stringstream ss;
         ss << "Unable to stop " << state.name;
+        getState(result);
         server_->setAborted(result, ss.str());
         return;
       }
@@ -303,6 +323,7 @@ void ControllerManager::execute(const robot_controllers_msgs::QueryControllerSta
       {
         std::stringstream ss;
         ss << "Unable to start " << state.name;
+        getState(result);
         server_->setAborted(result, ss.str());
         return;
       }
@@ -311,12 +332,21 @@ void ControllerManager::execute(const robot_controllers_msgs::QueryControllerSta
     {
       std::stringstream ss;
       ss << "Invalid state for controller " << state.name << ": " << static_cast<int>(state.state);
+      getState(result);
       server_->setAborted(result, ss.str());
       return;
     }
   }
 
   // Send result
+  getState(result);
+  server_->setSucceeded(result);
+}
+
+void ControllerManager::getState(
+    robot_controllers_msgs::QueryControllerStatesResult& result)
+{
+  result.state.clear();
   for (ControllerList::iterator c = controllers_.begin(); c != controllers_.end(); c++)
   {
     robot_controllers_msgs::ControllerState state;
@@ -332,8 +362,6 @@ void ControllerManager::execute(const robot_controllers_msgs::QueryControllerSta
     }
     result.state.push_back(state);
   }
-
-  server_->setSucceeded(result);
 }
 
 // NOTE: this function should be called only by one thread
